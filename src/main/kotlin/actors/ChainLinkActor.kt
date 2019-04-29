@@ -26,8 +26,17 @@ class ChainLinkActor(name: String, scope: CoroutineScope) : ActorBasic(name, sco
     private var lastMessage: ApplMessage? = null
     private val transitionTable = TransitionTable<States, String>()
 
-    private val led = LedSegmentActor("ledActor_$name", scope)
+    private val led = "ledActor_$name"
     private var next: String? = null
+
+    val ctxName = sysUtil.solve("qactor($name,CTX,_)", "CTX")!!
+    val hostAddr = sysUtil.solve("context($ctxName,ADDR,_,_)", "ADDR")!!
+    val hostProt = sysUtil.solve("context($ctxName,_,PROT,_)", "PROT")!!
+    val hostPort = sysUtil.solve("context($ctxName,_,_,PORT)", "PORT")!!
+    val actClass = "$javaClass"
+
+    val ctx = "context($ctxName,\"$hostAddr\",\"$hostProt\",$hostPort)."
+    val act = "qactor($name,$ctxName,\"$actClass\")."
 
     init {
         transitionTableSetup()
@@ -184,7 +193,7 @@ class ChainLinkActor(name: String, scope: CoroutineScope) : ActorBasic(name, sco
     //dynamic chain
     private suspend fun doControlAddToRegistry() {
         state = States.SLEEP
-
+/*
         val ctxName = sysUtil.solve("qactor($name,CTX,_)", "CTX")!!
         val hostAddr = sysUtil.solve("context($ctxName,ADDR,_,_)", "ADDR")!!
         val hostProt = sysUtil.solve("context($ctxName,_,PROT,_)", "PROT")!!
@@ -194,23 +203,13 @@ class ChainLinkActor(name: String, scope: CoroutineScope) : ActorBasic(name, sco
 
         val ctx = "context($ctxName,\"$hostAddr\",\"$hostProt\",$hostPort)."
         val act = "qactor($name,$ctxName,\"$actClass\")."
-
+        */
         val msg = QAKcmds.RegistryAddLink("$name|$ctx|$act")
         emit(msg.id, msg.cmd)
     }
 
     private suspend fun doControlRemoveFromRegistry() {
         state = States.INIT
-
-        val ctxName = sysUtil.solve("qactor($name,CTX,_)", "CTX")!!
-        val hostAddr = sysUtil.solve("context($ctxName,ADDR,_,_)", "ADDR")!!
-        val hostProt = sysUtil.solve("context($ctxName,_,PROT,_)", "PROT")!!
-        val hostPort = sysUtil.solve("context($ctxName,_,_,PORT)", "PORT")!!
-
-        val actClass = "$javaClass"
-
-        val ctx = "context($ctxName,\"$hostAddr\",\"$hostProt\",$hostPort)."
-        val act = "qactor($name,$ctxName,\"$actClass\")."
 
         val msg = QAKcmds.RegistryRemoveLink("$name|$ctx|$act")
         emit(msg.id, msg.cmd)

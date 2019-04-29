@@ -47,11 +47,18 @@ dependencies {
     compile fileTree(dir: 'libs', include: 'unibonoawtsupports.jar')
 }
 
-mainClassName = "ButtonGuiActorKt"
+mainClassName = "appl.MainLink4Kt"
 
 compileKotlin {
     kotlinOptions.jvmTarget = "1.8"
 }
 compileTestKotlin {
     kotlinOptions.jvmTarget = "1.8"
+}
+
+jar {
+    println("executing jar")
+    manifest {
+        attributes 'Main-Class': "$mainClassName"
+    }
 }
