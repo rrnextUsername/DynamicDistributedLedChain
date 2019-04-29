@@ -9,6 +9,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import stateMachine.QAKcmds
 import stateMachine.TransitionTable
+import java.net.InetAddress
 
 class RegistryActor(name: String, scope: CoroutineScope) : ActorBasic(name, scope) {
 
@@ -40,6 +41,9 @@ class RegistryActor(name: String, scope: CoroutineScope) : ActorBasic(name, scop
 
     init {
         transitionTableSetup()
+
+        val address= InetAddress.getLocalHost()
+        println("Registry on: ${address.hostAddress}")
     }
 
     private fun transitionTableSetup() {

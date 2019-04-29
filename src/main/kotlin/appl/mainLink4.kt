@@ -6,7 +6,6 @@ import kotlinx.coroutines.runBlocking
 import stateMachine.QAKcmds
 
 fun main() = runBlocking {
-    QakContext.createContexts("localhost", this, "sysDescLink4.pl", "sysRules.pl")
-    readLine()
-    MsgUtil.sendMsg(QAKcmds.ControlRemoveFromRegistry.id, "remove", QakContext.getActor("ledControl4")!!)
+    println("versione 1.0")
+    QakContext.createContexts("192.168.137.1", this, "sysDescLink4.pl", "sysRules.pl")
 }

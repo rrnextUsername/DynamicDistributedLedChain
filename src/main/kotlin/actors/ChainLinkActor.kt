@@ -10,6 +10,7 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import stateMachine.QAKcmds
 import stateMachine.TransitionTable
+import java.net.InetAddress
 
 class ChainLinkActor(name: String, scope: CoroutineScope) : ActorBasic(name, scope, true) {
     enum class States {
@@ -40,6 +41,8 @@ class ChainLinkActor(name: String, scope: CoroutineScope) : ActorBasic(name, sco
 
     init {
         transitionTableSetup()
+
+        println("Link $name on: $hostAddr:$hostPort")
 
         scope.launch { autoMsg(QAKcmds.ControlAddToRegistry.id, "add to registry") }
     }
@@ -193,17 +196,8 @@ class ChainLinkActor(name: String, scope: CoroutineScope) : ActorBasic(name, sco
     //dynamic chain
     private suspend fun doControlAddToRegistry() {
         state = States.SLEEP
-/*
-        val ctxName = sysUtil.solve("qactor($name,CTX,_)", "CTX")!!
-        val hostAddr = sysUtil.solve("context($ctxName,ADDR,_,_)", "ADDR")!!
-        val hostProt = sysUtil.solve("context($ctxName,_,PROT,_)", "PROT")!!
-        val hostPort = sysUtil.solve("context($ctxName,_,_,PORT)", "PORT")!!
 
-        val actClass = "$javaClass"
 
-        val ctx = "context($ctxName,\"$hostAddr\",\"$hostProt\",$hostPort)."
-        val act = "qactor($name,$ctxName,\"$actClass\")."
-        */
         val msg = QAKcmds.RegistryAddLink("$name|$ctx|$act")
         emit(msg.id, msg.cmd)
     }

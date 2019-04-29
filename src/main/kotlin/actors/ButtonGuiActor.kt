@@ -42,7 +42,7 @@ class ButtonGuiActor(name: String, scope: CoroutineScope) : ActorBasic(name, sco
 
     private fun transitionTableSetup() {
         transitionTable.putAction(States.WORKING, QAKcmds.ButtonClicked.id) {
-            println("$name:: received click -> emitting.");
+            println("$name:: received click -> emitting.")
             emitClick()
         }
     }
