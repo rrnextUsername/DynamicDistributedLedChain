@@ -46,12 +46,6 @@ class LedSegmentActor(name: String, scope: CoroutineScope) : ActorBasic(name, sc
         registerOnControl()
     }
 
-    private fun registerOnControl() {
-        val control = sysUtil.solve("bind(CONTROL,$name)", "CONTROL")!!
-
-        scope.launch { forward(QAKcmds.ControlAddLed.id, "$name|$ctx|$act", control) }
-    }
-
     private fun transitionTableSetup() {
         transitionTable.putAction(States.ON, QAKcmds.LedOff.id) {
             println("$name:: received off -> turning led off.")
@@ -61,6 +55,12 @@ class LedSegmentActor(name: String, scope: CoroutineScope) : ActorBasic(name, sc
             println("$name:: received on -> turning led on.")
             ledOn()
         }
+    }
+
+    private fun registerOnControl() {
+        val control = sysUtil.solve("bind(CONTROL,$name)", "CONTROL")!!
+
+        scope.launch { forward(QAKcmds.ControlAddLed.id, "$name|$ctx|$act", control) }
     }
 
     override suspend fun actorBody(msg: ApplMessage) {
