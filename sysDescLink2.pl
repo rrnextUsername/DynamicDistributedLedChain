@@ -1,5 +1,5 @@
-context(ctxReg,"192.168.137.1",    "TCP", 8010).
-context(ctxLed2,"192.168.137.1",    "TCP", 8030).
+context(ctxReg,"localhost",    "TCP", 8010).
+context(ctxLed2,"localhost",    "TCP", 8030).
 
 qactor( ledControl2, ctxLed2, "actors.DynamicChainLinkActor").
 

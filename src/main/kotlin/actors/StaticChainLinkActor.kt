@@ -104,14 +104,14 @@ open class StaticChainLinkActor(name: String, scope: CoroutineScope) : ActorBasi
             println("$name:: received change_next -> updating next.")
             doChangeNext(lastMessage!!)
         }
-
+/*
         States.values().forEach {
             transitionTable.putAction(it, QAKcmds.ControlAddLed.id) {
                 println("$name:: received subscribe message from LED -> adding to list.")
                 doAddLed(lastMessage!!)
             }
         }
-
+*/
         transitionTable.putAction(States.INIT, QAKcmds.ControlAddLed.id) {
             println("$name:: received change_next -> updating next.")
             doAddLed(lastMessage!!)
