@@ -11,7 +11,7 @@ import kotlinx.coroutines.launch
 import stateMachine.QAKcmds
 import stateMachine.TransitionTable
 
-class ChainLinkActor(name: String, scope: CoroutineScope) : ActorBasic(name, scope, true) {
+open class StaticChainLinkActor(name: String, scope: CoroutineScope) : ActorBasic(name, scope, true) {
     enum class States {
         INIT,
         SLEEP,
@@ -22,29 +22,32 @@ class ChainLinkActor(name: String, scope: CoroutineScope) : ActorBasic(name, sco
 
     private val delay = 750
 
-    private var state = States.INIT
+    protected var state = States.INIT
     private var lastMessage: ApplMessage? = null
-    private val transitionTable = TransitionTable<States, String>()
+    protected val transitionTable = TransitionTable<States, String>()
 
-    private val led = "ledActor_$name"
-    private var next: String? = null
+    private val ledList = mutableListOf<String>()
+    protected var next: String? = null
 
-    val ctxName = sysUtil.solve("qactor($name,CTX,_)", "CTX")!!
-    val hostAddr = sysUtil.solve("context($ctxName,ADDR,_,_)", "ADDR")!!
-    val hostProt = sysUtil.solve("context($ctxName,_,PROT,_)", "PROT")!!
-    val hostPort = sysUtil.solve("context($ctxName,_,_,PORT)", "PORT")!!
-    val actClass = "$javaClass"
+    private val ctxName = sysUtil.solve("qactor($name,CTX,_)", "CTX")!!
+    private val hostAddr = sysUtil.solve("context($ctxName,ADDR,_,_)", "ADDR")!!
+    private val hostProt = sysUtil.solve("context($ctxName,_,PROT,_)", "PROT")!!
+    private val hostPort = sysUtil.solve("context($ctxName,_,_,PORT)", "PORT")!!
+    private val actClass = "$javaClass"
 
-    val ctx = "context($ctxName,\"$hostAddr\",\"$hostProt\",$hostPort)."
-    val act = "qactor($name,$ctxName,\"$actClass\")."
+    protected val ctx = "context($ctxName,\"$hostAddr\",\"$hostProt\",$hostPort)."
+    protected val act = "qactor($name,$ctxName,\"$actClass\")."
 
     init {
         transitionTableSetup()
+        nextSetup()
+    }
 
+    protected open fun nextSetup() {
         scope.launch { autoMsg(QAKcmds.ControlAddToRegistry.id, "add to registry") }
     }
 
-    private fun transitionTableSetup() {
+    protected open fun transitionTableSetup() {
         //link state machine
         transitionTable.putAction(States.LIVE_TOKEN, QAKcmds.ControlStop.id) {
             println("$name:: received stop -> stopping chain.")
@@ -81,8 +84,6 @@ class ChainLinkActor(name: String, scope: CoroutineScope) : ActorBasic(name, sco
             doSleepToken()
         }
 
-
-        //dynamic chain
         transitionTable.putAction(States.INIT, QAKcmds.ControlAddToRegistry.id) {
             println("$name:: received add_to_registry -> registering myself on the registry.")
             doControlAddToRegistry()
@@ -93,42 +94,9 @@ class ChainLinkActor(name: String, scope: CoroutineScope) : ActorBasic(name, sco
         }
 
 
-        transitionTable.putAction(States.LIVE_TOKEN, QAKcmds.ControlChangeNext.id) {
-            println("$name:: received change_next -> updating next.")
-            doChangeNext(lastMessage!!)
-        }
-        transitionTable.putAction(States.LIVE_TOKEN, QAKcmds.ControlRemoveFromRegistry.id) {
-            println("$name:: received remove_from_registry -> de-registering myself from the registry and passing token ahead.")
-
-            forward(QAKcmds.ControlStop.id, "removing myself -> stop chain momentarily", next!!)
-            doControlRemoveFromRegistry()
-            forward(QAKcmds.ControlToken.id, "removing myself -> passing token ahead", next!!)
-            forward(QAKcmds.ControlStart.id, "removing myself ->starting chain again", next!!)
-        }
-
-
         transitionTable.putAction(States.SLEEP_TOKEN, QAKcmds.ControlChangeNext.id) {
             println("$name:: received change_next -> updating next.")
             doChangeNext(lastMessage!!)
-        }
-        transitionTable.putAction(States.SLEEP_TOKEN, QAKcmds.ControlRemoveFromRegistry.id) {
-            println("$name:: received remove_from_registry -> de-registering myself from the registry and passing token ahead.")
-
-            doControlRemoveFromRegistry()
-            forward(QAKcmds.ControlToken.id, "removing myself -> passing token ahead", next!!)
-        }
-
-
-        transitionTable.putAction(States.LIVE, QAKcmds.ControlChangeNext.id) {
-            println("$name:: received change_next -> updating next.")
-            doChangeNext(lastMessage!!)
-        }
-        transitionTable.putAction(States.LIVE, QAKcmds.ControlRemoveFromRegistry.id) {
-            println("$name:: received remove_from_registry -> de-registering myself from the registry.")
-
-            forward(QAKcmds.ControlStop.id, "removing myself -> stop chain momentarily", next!!)
-            doControlRemoveFromRegistry()
-            forward(QAKcmds.ControlStart.id, "removing myself ->starting chain again", next!!)
         }
 
 
@@ -136,10 +104,33 @@ class ChainLinkActor(name: String, scope: CoroutineScope) : ActorBasic(name, sco
             println("$name:: received change_next -> updating next.")
             doChangeNext(lastMessage!!)
         }
-        transitionTable.putAction(States.SLEEP, QAKcmds.ControlRemoveFromRegistry.id) {
-            println("$name:: received remove_from_registry -> de-registering myself from the registry.")
 
-            doControlRemoveFromRegistry()
+        States.values().forEach {
+            transitionTable.putAction(it, QAKcmds.ControlAddLed.id) {
+                println("$name:: received subscribe message from LED -> adding to list.")
+                doAddLed(lastMessage!!)
+            }
+        }
+
+        transitionTable.putAction(States.INIT, QAKcmds.ControlAddLed.id) {
+            println("$name:: received change_next -> updating next.")
+            doAddLed(lastMessage!!)
+        }
+        transitionTable.putAction(States.SLEEP, QAKcmds.ControlAddLed.id) {
+            println("$name:: received change_next -> updating next.")
+            doAddLed(lastMessage!!)
+        }
+        transitionTable.putAction(States.SLEEP_TOKEN, QAKcmds.ControlAddLed.id) {
+            println("$name:: received change_next -> updating next.")
+            doAddLed(lastMessage!!)
+        }
+        transitionTable.putAction(States.LIVE, QAKcmds.ControlAddLed.id) {
+            println("$name:: received change_next -> updating next.")
+            doAddLed(lastMessage!!)
+        }
+        transitionTable.putAction(States.LIVE_TOKEN, QAKcmds.ControlAddLed.id) {
+            println("$name:: received change_next -> updating next.")
+            doAddLed(lastMessage!!)
         }
     }
 
@@ -166,7 +157,7 @@ class ChainLinkActor(name: String, scope: CoroutineScope) : ActorBasic(name, sco
         }
     }
 
-    private suspend fun doSleepToken() {
+    private fun doSleepToken() {
         state = States.SLEEP_TOKEN
     }
 
@@ -182,39 +173,19 @@ class ChainLinkActor(name: String, scope: CoroutineScope) : ActorBasic(name, sco
         doLive()
     }
 
-    private suspend fun doLive() {
+    private fun doLive() {
         state = States.LIVE
     }
 
-    private suspend fun doSleep() {
+    private fun doSleep() {
         state = States.SLEEP
     }
 
-    //dynamic chain
     private suspend fun doControlAddToRegistry() {
         state = States.SLEEP
-/*
-        val ctxName = sysUtil.solve("qactor($name,CTX,_)", "CTX")!!
-        val hostAddr = sysUtil.solve("context($ctxName,ADDR,_,_)", "ADDR")!!
-        val hostProt = sysUtil.solve("context($ctxName,_,PROT,_)", "PROT")!!
-        val hostPort = sysUtil.solve("context($ctxName,_,_,PORT)", "PORT")!!
 
-        val actClass = "$javaClass"
-
-        val ctx = "context($ctxName,\"$hostAddr\",\"$hostProt\",$hostPort)."
-        val act = "qactor($name,$ctxName,\"$actClass\")."
-        */
         val msg = QAKcmds.RegistryAddLink("$name|$ctx|$act")
         emit(msg.id, msg.cmd)
-    }
-
-    private suspend fun doControlRemoveFromRegistry() {
-        state = States.INIT
-
-        val msg = QAKcmds.RegistryRemoveLink("$name|$ctx|$act")
-        emit(msg.id, msg.cmd)
-
-        turnOffLed()
     }
 
     private fun doChangeNext(msg: ApplMessage) {
@@ -229,13 +200,21 @@ class ChainLinkActor(name: String, scope: CoroutineScope) : ActorBasic(name, sco
 
 
     //led control
-    private suspend fun doTurnOnLed() {
-        val msg = QAKcmds.LedOn("turn on LED")
-        forward(msg.id, msg.cmd, led)
+    private fun doAddLed(msg: ApplMessage) {
+        ledList.add(msg.msgContent().filter { c -> c != '\'' }.split("|")[0])
+
+        QAKChainSysUtils.createContext(msg.msgContent())
     }
 
-    private suspend fun turnOffLed() {
+    protected suspend fun doTurnOnLed() {
+        val msg = QAKcmds.LedOn("turn on LED")
+        //forward(msg.id, msg.cmd, led)
+        ledList.forEach { forward(msg.id, msg.cmd, it) }
+    }
+
+    protected suspend fun turnOffLed() {
         val msg = QAKcmds.LedOff("turn off LED")
-        forward(msg.id, msg.cmd, led)
+        //forward(msg.id, msg.cmd, led)
+        ledList.forEach { forward(msg.id, msg.cmd, it) }
     }
 }

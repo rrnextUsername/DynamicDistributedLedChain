@@ -3,12 +3,14 @@ package stateMachine
 
 sealed class QAKcmds(val cmd: String, val id: String = "QAKcmds") {
 
+    //BUTTON MESSAGES
     class ButtonClicked(cmd: String = id) : QAKcmds(cmd, id = id) {
         companion object {
             const val id = "ButtonClicked"
         }
     }
 
+    //LED MESSAGES
     class LedOn(cmd: String = id) : QAKcmds(cmd, id = id) {
         companion object {
             const val id = "LedOn"
@@ -22,6 +24,7 @@ sealed class QAKcmds(val cmd: String, val id: String = "QAKcmds") {
     }
 
 
+    //CHAIN_LINK MESSAGES
     class ControlStart(cmd: String = id) : QAKcmds(cmd, id = id) {
         companion object {
             const val id = "ControlStart"
@@ -64,7 +67,13 @@ sealed class QAKcmds(val cmd: String, val id: String = "QAKcmds") {
         }
     }
 
+    class ControlAddLed(cmd: String = id) : QAKcmds(cmd, id = id) {
+        companion object {
+            const val id = "ControlAddLed"
+        }
+    }
 
+    //REGISTRY MESSAGES
     class RegistryAddLink(cmd: String = id) : QAKcmds(cmd, id = id) {
         companion object {
             const val id = "RegistryAddLink"

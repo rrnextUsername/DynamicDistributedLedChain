@@ -64,6 +64,13 @@ class RegistryActor(name: String, scope: CoroutineScope) : ActorBasic(name, scop
 
         transitionTable.putAction(States.CHAIN_ACTIVE, QAKcmds.RegistryAddLink.id) {
             println("$name:: received add_link -> adding link at the end of the chain.")
+/*
+            val msg= lastMessage!!
+
+            autoMsg(QAKcmds.RegistryButtonClicked.id,"stopping chain to operate on it")
+            autoMsg(msg)
+            autoMsg(QAKcmds.RegistryButtonClicked.id,"starting chain again")
+*/
 
             doStopChain()
             doAddLink(lastMessage!!)
