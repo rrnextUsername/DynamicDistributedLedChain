@@ -18,6 +18,7 @@ class MockLedActor(name: String, scope: CoroutineScope) : ActorBasic(name, scope
 
     init {
         state = States.OFF
+
         transitionTableSetup()
     }
 
