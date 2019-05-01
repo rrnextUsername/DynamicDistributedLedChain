@@ -4,6 +4,7 @@ import QAKChainSysUtils
 import it.unibo.kactor.ActorBasic
 import it.unibo.kactor.ApplMessage
 import it.unibo.kactor.QakContext
+import it.unibo.kactor.sysUtil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
@@ -111,12 +112,14 @@ class RegistryActor(name: String, scope: CoroutineScope) : ActorBasic(name, scop
     }
 
     private suspend fun doAddLink(msg: ApplMessage) {
-        links.add(LinkData(msg.msgSender(), msg.msgContent()))
 
-        QAKChainSysUtils.createContext(msg.msgContent())
+        if (sysUtil.getActor(msg.msgSender()) == null)
+            QAKChainSysUtils.createContext(msg.msgContent())
 
         forward(QAKcmds.ControlChangeNext.id, links[0].content, msg.msgSender())
-        forward(QAKcmds.ControlChangeNext.id, msg.msgContent(), links[links.size - 2].name)
+        forward(QAKcmds.ControlChangeNext.id, msg.msgContent(), links[links.size - 1].name)
+
+        links.add(LinkData(msg.msgSender(), msg.msgContent()))
     }
 
     private suspend fun doRemoveLink(msg: ApplMessage) {
